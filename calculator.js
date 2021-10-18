@@ -1,7 +1,18 @@
 const CONSTANTS = {
-    get RANDOM() { return Math.random() },
-    PI: Math.PI,
-    E: Math.E
+    LOG10E: Math.LOG10E, LOG2E: Math.LOG2E, PI: Math.PI,
+    E: Math.E, LN10: Math.LN10, LN2: Math.LN2,
+    SQRT1_2: Math.SQRT1_2, SQRT2: Math.SQRT2,
+    get RANDOM() { return Math.random() }
+}
+
+const FUNCTIONS = {
+    abs: Math.abs, acos: Math.acos, acosh: Math.acosh, asin: Math.asin,
+    asinh: Math.asinh, atan: Math.atan, atanh: Math.atanh, ceil: Math.ceil,
+    cbrt: Math.cbrt, expm1: Math.expm1, clz32: Math.clz32, cos: Math.cos,
+    cosh: Math.cosh, exp: Math.exp, floor: Math.floor, fround: Math.fround,
+    log: Math.log, log1p: Math.log1p, log2: Math.log2, log10: Math.log10,
+    round: Math.round, sign: Math.sign, sin: Math.sin, sinh: Math.sinh,
+    sqrt: Math.sqrt, tan: Math.tan, tanh: Math.tanh, trunc: Math.trunc
 }
 
 const isAlphabetic = (ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
@@ -10,6 +21,8 @@ const isAlphanumeric = (ch) => isNumeric(ch) || isAlphabetic(ch);
 const isNumeric = (ch) => ch >= '0' && ch <= '9';
 
 function getOPweight(op) {
+    if (op in FUNCTIONS) return 4;
+
     switch (op) {
         case '+':
         case '-':
@@ -20,21 +33,16 @@ function getOPweight(op) {
             return 2;
         case '^':
             return 3;
-        case 'floor': case 'ceil': case 'sqrt':
-        case 'tan': case 'abs': case 'cos':
-        case 'log': case 'sin': case 'tan':
-            return 4;
         default: return 0;
     }
 }
 
-/**
- * @param {string} op 
- * @param {number} a 
- * @param {number} b 
- * @returns {number}
- */
-function evaluate(op, a, b) {
+function evaluate(op, a, b, stack) {
+    if (op in FUNCTIONS) {
+        if (a !== undefined) stack.push(a);
+        return FUNCTIONS[ op ](b);
+    }
+
     switch (op) {
         case '+': return a + b;
         case '-': return a - b;
@@ -46,17 +54,7 @@ function evaluate(op, a, b) {
         case '%': return a % b;
 
         case '^': return a ** b;
-
-        case 'floor': return Math.floor(a)
-        case 'ceil': return Math.ceil(a)
-        case 'sqrt': return Math.sqrt(a)
-        case 'tan': return Math.tan(a)
-        case 'abs': return Math.abs(a)
-        case 'cos': return Math.cos(a)
-        case 'log': return Math.log(a)
-        case 'sin': return Math.sin(a)
-        case 'tan': return Math.tan(a)
-        default: throw `Unknown operator '${op}'`;
+        default: throw `Unimplemented operator '${op}'`;
     }
 }
 
@@ -104,12 +102,13 @@ function* infixToPostfix(exp) {
                 yield opStack.pop();
 
             if (opStack.pop() !== '(') throw 'Cannot parse an expression with mismatched parenthesis';
-        } else throw `Unexpected token '${token}' in position ${i}`;
+        } else throw `Unexpected token '${token}' at position ${(i + 1) - token.length}`;
     }
 
     while (opStack.length !== 0)
         yield opStack.pop();
 }
+
 function infixEvaluate(exp) {
     const stack = []
 
@@ -120,42 +119,17 @@ function infixEvaluate(exp) {
         }
 
         if (getOPweight(token)) {
-
+            const op2 = stack.pop(), op1 = stack.pop();
+            stack.push(evaluate(token, op1, op2, stack));
         }
     }
 
-    return stack.pop() || 0;
+    return stack.pop() ?? null;
 }
 
-infixEvaluate('tan(sqrt((3 ^ 2 * 2) + 4 ^ 2))')
-
-
-function infixEvaluatee(exp) {
-    const opStack = [];
-
-    for (const token of infixToPostfix(exp)) {
-        switch (typeof token) {
-            case 'number':
-                opStack.push(token);
-                break;
-            case 'function':
-                console.log(opStack)
-                //What to do here???
-                break;
-            case 'string':
-                if (getOPweight(token) > 0) {
-                    const op2 = opStack.pop(), op1 = opStack.pop();
-
-                    if (op1 === undefined || op2 === undefined)
-                        throw new Error('Invalid expression');
-                    opStack.push(evaluate(token, op1, op2));
-                }
-        }
-    }
-
-    return opStack.pop() || 0;
-}
-
-//console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
-//console.log(infixEvaluate('(112 + 566) * (477 / 442) - 100'));
-//console.log(infixEvaluate('RANDOM * 10 / PI'));
+console.log(infixEvaluate('tan(sqrt((3 ^ 2 * 10) + 6 ^ 3) + 2)'))
+console.log(infixEvaluate('tan(sqrt((3 ^ (2 * 10)) + 6 ^ 3) + 2)'))
+console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
+console.log(infixEvaluate('(112 + 566) * (477 / 442) - 100'));
+console.log(infixEvaluate('RANDOM * 10 / PI'));
+console.log(infixEvaluate('log10(100)'));
