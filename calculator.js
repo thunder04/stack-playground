@@ -4,35 +4,25 @@ const CONSTANTS = {
     E: Math.E
 }
 
-const FUNCTIONS = {
-    floor: Math.floor,
-    ceil: Math.ceil,
-    sqrt: Math.sqrt,
-    tan: Math.tan,
-    abs: Math.abs,
-    cos: Math.cos,
-    log: Math.log,
-    sin: Math.sin,
-    tan: Math.tan
-}
-
-const isAlphabeticCharacter = (token) => (token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z');
-const isOpeningParenthesis = (token) => token === '(' || token === '[' || token === '{';
-const isClosingParenthesis = (token) => token === ')' || token === ']' || token === '}';
-const isNumericCharacter = (token) => token >= '0' && token <= '9';
+const isAlphabetic = (ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+const isSpace = (ch) => ch === ' ' || ch === '\n' || ch === '\r';
+const isAlphanumeric = (ch) => isNumeric(ch) || isAlphabetic(ch);
+const isNumeric = (ch) => ch >= '0' && ch <= '9';
 
 function getOPweight(op) {
     switch (op) {
-        // 1 is reserved for binary operators
-
         case '+':
         case '-':
-            return 2;
+            return 1;
         case '*':
         case '/':
         case '%':
-            return 3;
+            return 2;
         case '^':
+            return 3;
+        case 'floor': case 'ceil': case 'sqrt':
+        case 'tan': case 'abs': case 'cos':
+        case 'log': case 'sin': case 'tan':
             return 4;
         default: return 0;
     }
@@ -51,101 +41,121 @@ function evaluate(op, a, b) {
 
         case '*': return a * b;
         case '/':
-            if (b === 0) throw new Error('Dividend may not be divided by 0');
+            if (b === 0) throw 'Dividend may not be divided by 0';
             return a / b;
         case '%': return a % b;
 
         case '^': return a ** b;
-        default: throw new Error(`Unknown operator '${op}'`);
+
+        case 'floor': return Math.floor(a)
+        case 'ceil': return Math.ceil(a)
+        case 'sqrt': return Math.sqrt(a)
+        case 'tan': return Math.tan(a)
+        case 'abs': return Math.abs(a)
+        case 'cos': return Math.cos(a)
+        case 'log': return Math.log(a)
+        case 'sin': return Math.sin(a)
+        case 'tan': return Math.tan(a)
+        default: throw `Unknown operator '${op}'`;
     }
 }
 
-/** @returns {Generator<string | number | function>} */
 function* infixToPostfix(exp) {
-    const stack = [];
+    const opStack = [];
 
     for (var i = 0, len = exp.length; i < len; ++i) {
         var token = exp[ i ];
 
-        if (token === ' ') continue;
+        if (isSpace(token))
+            continue;
 
-        if (isNumericCharacter(token)) {
-            while (i + 1 < len && isNumericCharacter(exp[ i + 1 ]))
+        if (isNumeric(token)) {
+            while (i + 1 < len && isNumeric(exp[ i + 1 ]))
                 token += exp[ ++i ];
             yield +token;
             continue;
         }
 
-        if (isAlphabeticCharacter(token)) {
-            while (i + 1 < len && isAlphabeticCharacter(exp[ i + 1 ]))
+        if (isAlphabetic(token)) {
+            while (i + 1 < len && isAlphanumeric(exp[ i + 1 ]))
                 token += exp[ ++i ];
 
             if (token in CONSTANTS) {
                 yield CONSTANTS[ token ];
                 continue;
             }
-
-            if (token in FUNCTIONS) {
-                yield FUNCTIONS[ token ];
-                continue;
-            }
         }
 
-        const charWeight = getOPweight(token);
+        const charWeight = getOPweight(token)
 
-        if (charWeight > 0) {
-            var top = stack[ stack.length - 1 ];
+        if (charWeight) {
+            var top = opStack[ opStack.length - 1 ];
 
-            while (stack.length !== 0 && !isOpeningParenthesis(top) && getOPweight(top) > charWeight) {
-                yield stack.pop(); top = stack[ stack.length - 1 ];
+            while (opStack.length !== 0 && top !== '(' && getOPweight(top) >= charWeight) {
+                yield opStack.pop();
+                top = opStack[ opStack.length - 1 ];
             }
 
-            stack.push(token);
-        } else if (isOpeningParenthesis(token)) {
-            stack.push(token);
-        } else if (isClosingParenthesis(token)) {
-            while (stack.length !== 0 && !isOpeningParenthesis(stack[ stack.length - 1 ])) {
-                yield stack.pop();
-            }
+            opStack.push(token);
+        } else if (token === '(') {
+            opStack.push(token);
+        } else if (token === ')') {
+            while (opStack.length !== 0 && opStack[ opStack.length - 1 ] !== '(')
+                yield opStack.pop();
 
-            stack.pop();
-            break;
-        } else throw new Error(`Unexpected token '${token}' in position ${i}`);
+            if (opStack.pop() !== '(') throw 'Cannot parse an expression with mismatched parenthesis';
+        } else throw `Unexpected token '${token}' in position ${i}`;
     }
 
-    while (stack.length !== 0)
-        yield stack.pop();
+    while (opStack.length !== 0)
+        yield opStack.pop();
 }
-
-/**
- * @param {string} exp
- * @returns {number}
- */
 function infixEvaluate(exp) {
-    const stack = [];
+    const stack = []
 
     for (const token of infixToPostfix(exp)) {
-        switch (typeof token) {
-            case 'number':
-                stack.push(token);
-                break;
-            case 'function':
-                console.log(stack)
-                //What to do here???
-                break;
-            case 'string':
-                if (getOPweight(token) > 0) {
-                    const op2 = stack.pop(), op1 = stack.pop();
+        if (typeof token === 'number') {
+            stack.push(token)
+            continue
+        }
 
-                    if (op1 === undefined || op2 === undefined)
-                        throw new Error('Invalid expression');
-                    stack.push(evaluate(token, op1, op2));
-                }
+        if (getOPweight(token)) {
+
         }
     }
 
     return stack.pop() || 0;
 }
 
-console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
-console.log(infixEvaluate('RANDOM * 10 / PI'));
+infixEvaluate('tan(sqrt((3 ^ 2 * 2) + 4 ^ 2))')
+
+
+function infixEvaluatee(exp) {
+    const opStack = [];
+
+    for (const token of infixToPostfix(exp)) {
+        switch (typeof token) {
+            case 'number':
+                opStack.push(token);
+                break;
+            case 'function':
+                console.log(opStack)
+                //What to do here???
+                break;
+            case 'string':
+                if (getOPweight(token) > 0) {
+                    const op2 = opStack.pop(), op1 = opStack.pop();
+
+                    if (op1 === undefined || op2 === undefined)
+                        throw new Error('Invalid expression');
+                    opStack.push(evaluate(token, op1, op2));
+                }
+        }
+    }
+
+    return opStack.pop() || 0;
+}
+
+//console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
+//console.log(infixEvaluate('(112 + 566) * (477 / 442) - 100'));
+//console.log(infixEvaluate('RANDOM * 10 / PI'));
