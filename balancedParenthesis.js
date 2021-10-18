@@ -1,7 +1,5 @@
-import Stack from './Stack.mjs'
-
 function balancedParenthesis(str) {
-    const stack = new Stack()
+    const stack = []
 
     for (var i = 0, len = str.length; i < len; ++i) {
         const token = str[ i ]
@@ -11,10 +9,10 @@ function balancedParenthesis(str) {
                 stack.push(token)
                 break
             case ')': case '}': case ']':
-                if (stack.isEmpty())
+                if (stack.length === 0)
                     return false
 
-                const top = stack.peek()
+                const top = stack[ stack.length - 1 ]
 
                 if (
                     (top === '(' && token !== ')') ||
@@ -26,7 +24,7 @@ function balancedParenthesis(str) {
         }
     }
 
-    return stack.isEmpty()
+    return stack.length === 0
 }
 
 
