@@ -1,4 +1,3 @@
-
 const CONSTANTS = {
     get RANDOM() { return Math.random() },
     PI: Math.PI,
@@ -52,7 +51,7 @@ function evaluate(op, a, b) {
 
         case '*': return a * b;
         case '/':
-            if (b === 0) throw new Error('Divisor may not be 0');
+            if (b === 0) throw new Error('Dividend may not be divided by 0');
             return a / b;
         case '%': return a % b;
 
@@ -61,15 +60,14 @@ function evaluate(op, a, b) {
     }
 }
 
-/** @returns {Generator<string | number>} */
+/** @returns {Generator<string | number | function>} */
 function* infixToPostfix(exp) {
     const stack = [];
 
     for (var i = 0, len = exp.length; i < len; ++i) {
         var token = exp[ i ];
 
-        if (token === ' ')
-            continue;
+        if (token === ' ') continue;
 
         if (isNumericCharacter(token)) {
             while (i + 1 < len && isNumericCharacter(exp[ i + 1 ]))
@@ -86,9 +84,12 @@ function* infixToPostfix(exp) {
                 yield CONSTANTS[ token ];
                 continue;
             }
-        }
 
-        //TODO: Now token might be a keyword for a function (multi-character string), add it to the stack and wait for the next expression 
+            if (token in FUNCTIONS) {
+                yield FUNCTIONS[ token ];
+                continue;
+            }
+        }
 
         const charWeight = getOPweight(token);
 
@@ -96,8 +97,7 @@ function* infixToPostfix(exp) {
             var top = stack[ stack.length - 1 ];
 
             while (stack.length !== 0 && !isOpeningParenthesis(top) && getOPweight(top) > charWeight) {
-                yield stack.pop();
-                top = stack[ stack.length - 1 ];
+                yield stack.pop(); top = stack[ stack.length - 1 ];
             }
 
             stack.push(token);
@@ -109,7 +109,8 @@ function* infixToPostfix(exp) {
             }
 
             stack.pop();
-        } else throw new Error(`Unknown token '${token}'`);
+            break;
+        } else throw new Error(`Unexpected token '${token}' in position ${i}`);
     }
 
     while (stack.length !== 0)
@@ -124,24 +125,27 @@ function infixEvaluate(exp) {
     const stack = [];
 
     for (const token of infixToPostfix(exp)) {
-        if (typeof token === 'number') stack.push(token);
-        else if (token in FUNCTIONS) {
-            const op1 = stack.pop();
+        switch (typeof token) {
+            case 'number':
+                stack.push(token);
+                break;
+            case 'function':
+                console.log(stack)
+                //What to do here???
+                break;
+            case 'string':
+                if (getOPweight(token) > 0) {
+                    const op2 = stack.pop(), op1 = stack.pop();
 
-            if (op1 === undefined)
-                throw new Error(`Invalid expression for function '${token}'`);
-            stack.push(FUNCTIONS[ token ](op1));
-        } else if (getOPweight(token) > 0) {
-            const op2 = stack.pop(), op1 = stack.pop();
-
-            if (op1 === undefined || op2 === undefined)
-                throw new Error('Invalid expression');
-            stack.push(evaluate(token, op1, op2));
+                    if (op1 === undefined || op2 === undefined)
+                        throw new Error('Invalid expression');
+                    stack.push(evaluate(token, op1, op2));
+                }
         }
     }
 
     return stack.pop() || 0;
 }
 
-console.log(infixEvaluate('RANDOM + 10'))
 console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
+console.log(infixEvaluate('RANDOM * 10 / PI'));
