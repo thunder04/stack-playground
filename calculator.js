@@ -67,6 +67,13 @@ function* infixToPostfix(exp) {
         if (isSpace(token))
             continue;
 
+        if (token === '-' && i + 1 < len && isNumeric(exp[ i + 1 ])) {
+            do token += exp[ ++i ];
+            while (i + 1 < len && isNumeric(exp[ i + 1 ]));
+            yield +token;
+            continue;
+        }
+
         if (isNumeric(token)) {
             while (i + 1 < len && isNumeric(exp[ i + 1 ]))
                 token += exp[ ++i ];
@@ -89,7 +96,9 @@ function* infixToPostfix(exp) {
         if (charWeight) {
             var top = opStack[ opStack.length - 1 ];
 
-            while (opStack.length !== 0 && top !== '(' && getOPweight(top) >= charWeight) {
+            while (opStack.length !== 0 && top !== '(' && (
+                token === '^' ? getOPweight(top) > charWeight : getOPweight(top) >= charWeight
+            )) {
                 yield opStack.pop();
                 top = opStack[ opStack.length - 1 ];
             }
@@ -127,9 +136,14 @@ function infixEvaluate(exp) {
     return stack.pop() ?? null;
 }
 
-console.log(infixEvaluate('tan(sqrt((3 ^ 2 * 10) + 6 ^ 3) + 2)'))
-console.log(infixEvaluate('tan(sqrt((3 ^ (2 * 10)) + 6 ^ 3) + 2)'))
 console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
+console.log(infixEvaluate('tan(sqrt((3 ^ (2 * 10)) + 6 ^ 3) + 2)'));
+console.log(infixEvaluate('tan(sqrt((3 ^ 2 * 10) + 6 ^ 3) + 2)'));
 console.log(infixEvaluate('(112 + 566) * (477 / 442) - 100'));
 console.log(infixEvaluate('RANDOM * 10 / PI'));
 console.log(infixEvaluate('log10(100)'));
+console.log(infixEvaluate('2 ^ 3 ^ 4'));
+console.log(infixEvaluate('10 - -20'));
+console.log(infixEvaluate('10--20'));
+console.log(infixEvaluate('10 - 20'));
+console.log(infixEvaluate('-20'));
