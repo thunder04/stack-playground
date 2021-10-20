@@ -1,3 +1,5 @@
+const PI_DIVIDED_BY_180 = Math.PI / 180
+
 const CONSTANTS = {
     LOG10E: Math.LOG10E, LOG2E: Math.LOG2E, PI: Math.PI,
     E: Math.E, LN10: Math.LN10, LN2: Math.LN2,
@@ -12,7 +14,8 @@ const FUNCTIONS = {
     cosh: Math.cosh, exp: Math.exp, floor: Math.floor, fround: Math.fround,
     log: Math.log, log1p: Math.log1p, log2: Math.log2, log10: Math.log10,
     round: Math.round, sign: Math.sign, sin: Math.sin, sinh: Math.sinh,
-    sqrt: Math.sqrt, tan: Math.tan, tanh: Math.tanh, trunc: Math.trunc
+    sqrt: Math.sqrt, tan: Math.tan, tanh: Math.tanh, trunc: Math.trunc,
+    rad: (a) => a * PI_DIVIDED_BY_180
 }
 
 const isAlphabetic = (token) => (token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z');
