@@ -15,10 +15,9 @@ const FUNCTIONS = {
     sqrt: Math.sqrt, tan: Math.tan, tanh: Math.tanh, trunc: Math.trunc
 }
 
-const isAlphabetic = (ch) => (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
-const isSpace = (ch) => ch === ' ' || ch === '\n' || ch === '\r';
-const isAlphanumeric = (ch) => isNumeric(ch) || isAlphabetic(ch);
-const isNumeric = (ch) => ch >= '0' && ch <= '9';
+const isAlphabetic = (token) => (token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z');
+const isAlphanumeric = (token) => isNumeric(token) || isAlphabetic(token);
+const isNumeric = (token) => token >= '0' && token <= '9';
 
 function getOPweight(op) {
     if (op in FUNCTIONS) return 4;
@@ -37,10 +36,19 @@ function getOPweight(op) {
     }
 }
 
-function evaluate(op, a, b, stack) {
+function evaluate(op, stack) {
+    const b = stack.pop();
+    if (b == undefined) {
+        throw 'Invalid infix expression';
+    }
+
     if (op in FUNCTIONS) {
-        if (a !== undefined) stack.push(a);
         return FUNCTIONS[ op ](b);
+    }
+
+    const a = stack.pop();
+    if (a == undefined) {
+        throw 'Invalid infix expression';
     }
 
     switch (op) {
@@ -64,7 +72,7 @@ function* infixToPostfix(exp) {
     for (var i = 0, len = exp.length; i < len; ++i) {
         var token = exp[ i ];
 
-        if (isSpace(token))
+        if (token === ' ' || token === '\n' || token === '\r')
             continue;
 
         if (token === '-' && i + 1 < len && isNumeric(exp[ i + 1 ])) {
@@ -94,14 +102,11 @@ function* infixToPostfix(exp) {
         const charWeight = getOPweight(token)
 
         if (charWeight) {
-            var top = opStack[ opStack.length - 1 ];
+            var top;
 
-            while (opStack.length !== 0 && top !== '(' && (
+            while (opStack.length !== 0 && (top = opStack[ opStack.length - 1 ]) !== '(' && (
                 token === '^' ? getOPweight(top) > charWeight : getOPweight(top) >= charWeight
-            )) {
-                yield opStack.pop();
-                top = opStack[ opStack.length - 1 ];
-            }
+            )) yield opStack.pop();
 
             opStack.push(token);
         } else if (token === '(') {
@@ -110,7 +115,7 @@ function* infixToPostfix(exp) {
             while (opStack.length !== 0 && opStack[ opStack.length - 1 ] !== '(')
                 yield opStack.pop();
 
-            if (opStack.pop() !== '(') throw 'Cannot parse an expression with mismatched parenthesis';
+            if (opStack.pop() !== '(') throw 'Cannot parse an expression with unbalanced parentheses';
         } else throw `Unexpected token '${token}' at position ${(i + 1) - token.length}`;
     }
 
@@ -122,28 +127,33 @@ function infixEvaluate(exp) {
     const stack = []
 
     for (const token of infixToPostfix(exp)) {
-        if (typeof token === 'number') {
+        if (typeof token === 'number')
             stack.push(token)
-            continue
-        }
-
-        if (getOPweight(token)) {
-            const op2 = stack.pop(), op1 = stack.pop();
-            stack.push(evaluate(token, op1, op2, stack));
-        }
+        else if (getOPweight(token))
+            stack.push(evaluate(token, stack));
     }
 
     return stack.pop() ?? null;
 }
 
-console.log(infixEvaluate('((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10'));
-console.log(infixEvaluate('tan(sqrt((3 ^ (2 * 10)) + 6 ^ 3) + 2)'));
-console.log(infixEvaluate('tan(sqrt((3 ^ 2 * 10) + 6 ^ 3) + 2)'));
-console.log(infixEvaluate('(112 + 566) * (477 / 442) - 100'));
-console.log(infixEvaluate('RANDOM * 10 / PI'));
-console.log(infixEvaluate('log10(100)'));
-console.log(infixEvaluate('2 ^ 3 ^ 4'));
-console.log(infixEvaluate('10 - -20'));
-console.log(infixEvaluate('10--20'));
-console.log(infixEvaluate('10 - 20'));
-console.log(infixEvaluate('-20'));
+[
+    '((112 + 566 * (477 / 442) - 100) * 50 ^ 0) + 1 % 10',
+    '(112 + 566) * (477 / 442) - 100',
+
+    'tan(sqrt((3 ^ (2 * 10)) + 6 ^ 3) + 2)',
+    'tan(sqrt((3 ^ 2 * 10) + 6 ^ 3) + 2)',
+    'log10(100)',
+
+    'RANDOM * 10 / PI',
+    'LN2 + E',
+
+    '2 ^ 3 ^ 4',
+    '0 ^ 1',
+    '1 ^ 0',
+
+    '-5 + -10',
+    '10 - -20',
+    '10 - 20',
+    '10--20',
+    '-20',
+].forEach(exp => console.log(`${exp} ->`, infixEvaluate(exp)))
