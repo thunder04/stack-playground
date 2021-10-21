@@ -39,20 +39,21 @@ function getOPweight(op) {
     }
 }
 
+function validateOperand(num, op) {
+    if (typeof num !== 'number')
+        throw `Expected an ${op in FUNCTIONS ? 'argument for function' : 'operand for'} '${op}'`
+}
+
 function evaluate(op, stack) {
     const b = stack.pop();
-    if (b == undefined) {
-        throw 'Invalid infix expression';
-    }
+    validateOperand(b, op);
 
     if (op in FUNCTIONS) {
-        return FUNCTIONS[ op ](b);
+        return FUNCTIONS[op](b);
     }
 
     const a = stack.pop();
-    if (a == undefined) {
-        throw 'Invalid infix expression';
-    }
+    validateOperand(a, op);
 
     switch (op) {
         case '+': return a + b;
@@ -73,31 +74,31 @@ function* infixToPostfix(exp) {
     const opStack = [];
 
     for (var i = 0, len = exp.length; i < len; ++i) {
-        var token = exp[ i ];
+        var token = exp[i];
 
         if (token === ' ' || token === '\n' || token === '\r')
             continue;
 
-        if (token === '-' && i + 1 < len && isNumeric(exp[ i + 1 ])) {
-            do token += exp[ ++i ];
-            while (i + 1 < len && isNumeric(exp[ i + 1 ]));
+        if (token === '-' && i + 1 < len && isNumeric(exp[i + 1])) {
+            do token += exp[++i];
+            while (i + 1 < len && isNumeric(exp[i + 1]));
             yield +token;
             continue;
         }
 
         if (isNumeric(token)) {
-            while (i + 1 < len && isNumeric(exp[ i + 1 ]))
-                token += exp[ ++i ];
+            while (i + 1 < len && isNumeric(exp[i + 1]))
+                token += exp[++i];
             yield +token;
             continue;
         }
 
         if (isAlphabetic(token)) {
-            while (i + 1 < len && isAlphanumeric(exp[ i + 1 ]))
-                token += exp[ ++i ];
+            while (i + 1 < len && isAlphanumeric(exp[i + 1]))
+                token += exp[++i];
 
             if (token in CONSTANTS) {
-                yield CONSTANTS[ token ];
+                yield CONSTANTS[token];
                 continue;
             }
         }
@@ -107,7 +108,7 @@ function* infixToPostfix(exp) {
         if (charWeight) {
             var top;
 
-            while (opStack.length !== 0 && (top = opStack[ opStack.length - 1 ]) !== '(' && (
+            while (opStack.length !== 0 && (top = opStack[opStack.length - 1]) !== '(' && (
                 token === '^' ? getOPweight(top) > charWeight : getOPweight(top) >= charWeight
             )) yield opStack.pop();
 
@@ -115,7 +116,7 @@ function* infixToPostfix(exp) {
         } else if (token === '(') {
             opStack.push(token);
         } else if (token === ')') {
-            while (opStack.length !== 0 && opStack[ opStack.length - 1 ] !== '(')
+            while (opStack.length !== 0 && opStack[opStack.length - 1] !== '(')
                 yield opStack.pop();
 
             if (opStack.pop() !== '(') throw 'Cannot parse an expression with unbalanced parentheses';
@@ -131,12 +132,17 @@ function infixEvaluate(exp) {
 
     for (const token of infixToPostfix(exp)) {
         if (typeof token === 'number')
-            stack.push(token)
+            stack.push(token);
         else if (getOPweight(token))
             stack.push(evaluate(token, stack));
     }
 
     return stack.pop() ?? null;
+}
+
+function tryParse(exp) {
+    try { return infixEvaluate(exp) }
+    catch (err) { return err }
 }
 
 [
@@ -159,4 +165,6 @@ function infixEvaluate(exp) {
     '10 - 20',
     '10--20',
     '-20',
-].forEach(exp => console.log(`${exp} ->`, infixEvaluate(exp)))
+
+    'sin',
+].forEach(exp => console.log(`${exp} ->`, tryParse(exp)))
