@@ -40,20 +40,20 @@ function getOPweight(op) {
 }
 
 function validateOperand(num, op) {
-    if (typeof num !== 'number')
-        throw `Expected an ${op in FUNCTIONS ? 'argument for function' : 'operand for'} '${op}'`
+    if (typeof num !== 'number') {
+        throw op in FUNCTIONS ? `Expected a parameter for function ${op}()`
+            : `Expected an operand for '${op}'`
+    } return num
 }
 
 function evaluate(op, stack) {
-    const b = stack.pop();
-    validateOperand(b, op);
+    const b = validateOperand(stack.pop(), op);
 
     if (op in FUNCTIONS) {
         return FUNCTIONS[op](b);
     }
 
-    const a = stack.pop();
-    validateOperand(a, op);
+    const a = validateOperand(stack.pop(), op);
 
     switch (op) {
         case '+': return a + b;
@@ -120,7 +120,7 @@ function* infixToPostfix(exp) {
                 yield opStack.pop();
 
             if (opStack.pop() !== '(') throw 'Cannot parse an expression with unbalanced parentheses';
-        } else throw `Unexpected token '${token}' at position ${(i + 1) - token.length}`;
+        } else throw `Unexpected token '${token}' at position ${i + 1 - token.length}`
     }
 
     while (opStack.length !== 0)
@@ -166,5 +166,7 @@ function tryParse(exp) {
     '10--20',
     '-20',
 
+    '10 + 20 + 50 * abc + 20 * 50',
+    '10 + 20 + 50 * 2 + 20 * +',
     'sin',
 ].forEach(exp => console.log(`${exp} ->`, tryParse(exp)))
