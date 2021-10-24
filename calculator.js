@@ -19,8 +19,8 @@ const FUNCTIONS = {
 }
 
 const isAlphabetic = (token) => (token >= 'a' && token <= 'z') || (token >= 'A' && token <= 'Z');
+const isNumeric = (token) => token === '.' || token >= '0' && token <= '9';
 const isAlphanumeric = (token) => isNumeric(token) || isAlphabetic(token);
-const isNumeric = (token) => token >= '0' && token <= '9';
 
 function getOPweight(op) {
     if (op in FUNCTIONS) return 4;
@@ -61,9 +61,11 @@ function evaluate(op, stack) {
 
         case '*': return a * b;
         case '/':
-            if (b === 0) throw 'Dividend may not be divided by 0';
+            if (b === 0) throw 'Divisor may not be divided by 0';
             return a / b;
-        case '%': return a % b;
+        case '%':
+            if (b === 0) throw 'Divisor may not be divided by 0';
+            return a % b;
 
         case '^': return a ** b;
         default: throw `Unimplemented operator '${op}'`;
@@ -131,10 +133,12 @@ function infixEvaluate(exp) {
     const stack = []
 
     for (const token of infixToPostfix(exp)) {
-        if (typeof token === 'number')
+        if (typeof token === 'number') {
+            if (isNaN(token)) return null;
             stack.push(token);
-        else if (getOPweight(token))
+        } else if (getOPweight(token)) {
             stack.push(evaluate(token, stack));
+        }
     }
 
     return stack.pop() ?? null;
@@ -169,4 +173,7 @@ function tryParse(exp) {
     '10 + 20 + 50 * abc + 20 * 50',
     '10 + 20 + 50 * 2 + 20 * +',
     'sin',
+    '20.2',
+    '20.3 - -20',
+    '-20.3',
 ].forEach(exp => console.log(`${exp} ->`, tryParse(exp)))
