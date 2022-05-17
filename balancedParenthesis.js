@@ -1,34 +1,28 @@
 function balancedParenthesis(str) {
-    const stack = []
+    const stack = [];
 
     for (var i = 0, len = str.length; i < len; ++i) {
-        const token = str[ i ]
+        const token = str[i];
 
         switch (token) {
             case '(': case '{': case '[':
-                stack.push(token)
-                break
+                stack.push(token);
+                break;
             case ')': case '}': case ']':
                 if (stack.length === 0)
-                    return false
+                    return false;
 
-                const top = stack[ stack.length - 1 ]
+                const top = stack[stack.length - 1];
 
                 if (
                     (top === '(' && token !== ')') ||
                     (top === '{' && token !== '}') ||
                     (top === '[' && token !== ']')
-                ) return false
+                ) return false;
 
-                stack.pop()
+                stack.pop();
         }
     }
 
-    return stack.length === 0
+    return stack.length === 0;
 }
-
-
-console.log('balancedParenthesis', {
-    '({{{{{{{{()()[]()[]}}}}}}}})': balancedParenthesis('({{{{{{{{()()[]()[]}}}}}}}})'),
-    '{[(])}': balancedParenthesis('{[(])}')
-})
